@@ -408,6 +408,7 @@ void SettingsWindow::connectSignalsSlots()
 #endif
 #ifdef MAC_OS_CG_GRAB_SUPPORT
 	connect(ui->radioButton_GrabMacCoreGraphics, &QRadioButton::toggled, this, &SettingsWindow::onGrabberChanged);
+	connect(ui->radioButton_GrabMacScreenCaptureKit, &QRadioButton::toggled, this, &SettingsWindow::onGrabberChanged);
 #endif
 #ifdef D3D10_GRAB_SUPPORT
 	connect(ui->checkBox_EnableDx1011Capture, &QCheckBox::toggled, this, &SettingsWindow::onDx1011CaptureEnabledChanged);
@@ -950,6 +951,11 @@ void SettingsWindow::initGrabbersRadioButtonsVisibility()
 	ui->radioButton_GrabMacCoreGraphics->setVisible(false);
 #else
 	ui->radioButton_GrabMacCoreGraphics->setChecked(true);
+#endif
+#ifndef MAC_OS_SCK_GRAB_SUPPORT
+	ui->radioButton_GrabMacScreenCaptureKit->setVisible(false);
+#else
+	ui->radioButton_GrabMacScreenCaptureKit->setChecked(true);
 #endif
 }
 
@@ -2335,6 +2341,11 @@ void SettingsWindow::updateUiFromSettings()
 		ui->radioButton_GrabMacCoreGraphics->setChecked(true);
 		break;
 #endif
+#ifdef MAC_OS_SCK_GRAB_SUPPORT
+	case Grab::GrabberTypeMacScreenCaptureKit:
+		ui->radioButton_GrabMacScreenCaptureKit->setChecked(true);
+		break;
+#endif
 	default:
 		qWarning() << Q_FUNC_INFO << "unsupported grabber in settings: " << Settings::getGrabberType();
 		break;
@@ -2378,6 +2389,11 @@ Grab::GrabberType SettingsWindow::getSelectedGrabberType()
 #ifdef MAC_OS_CG_GRAB_SUPPORT
 	if (ui->radioButton_GrabMacCoreGraphics->isChecked()) {
 		return Grab::GrabberTypeMacCoreGraphics;
+	}
+#endif
+#ifdef MAC_OS_SCK_GRAB_SUPPORT
+	if (ui->radioButton_GrabMacScreenCaptureKit->isChecked()) {
+		return Grab::GrabberTypeMacScreenCaptureKit;
 	}
 #endif
 

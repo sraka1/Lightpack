@@ -254,6 +254,7 @@ macx{
             -framework IOKit \
             # private framework
             -weak_framework CoreBrightness \
+            -framework ScreenCaptureKit \
             -framework AppKit \
             -framework Accelerate \
             -framework CoreMedia \

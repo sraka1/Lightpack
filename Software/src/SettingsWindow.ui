@@ -3434,6 +3434,13 @@ LED groups (created in the configuration wizard's zone placement step) let you r
                 </widget>
                </item>
                <item>
+                <widget class="QRadioButton" name="radioButton_GrabMacScreenCaptureKit">
+                 <property name="text">
+                  <string>Mac ScreenCaptureKit (Full screen)</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
                 <widget class="QRadioButton" name="radioButton_GrabMacCoreGraphics">
                  <property name="text">
                   <string>Mac CG (Full screen)</string>

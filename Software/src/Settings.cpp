@@ -298,6 +298,7 @@ static const QString X11 = QStringLiteral("X11");
 static const QString D3D9 = QStringLiteral("D3D9");
 static const QString MacCoreGraphics = QStringLiteral("MacCoreGraphics");
 static const QString MacAVFoundation = QStringLiteral("MacAVFoundation");
+static const QString MacScreenCaptureKit = QStringLiteral("MacScreenCaptureKit");
 static const QString DDupl = QStringLiteral("DDupl");
 }
 
@@ -1466,6 +1467,11 @@ QString Settings::getZoneScreenIdentity()
 
 void Settings::setZoneScreenIdentity(const QString& identity)
 {
+	// Called from GrabManager on every successful frame; writing an unchanged
+	// value would re-dirty QSettings (file sync + parse on the main thread) at
+	// grab rate, which showed up as the top CPU consumer in a profile.
+	if (getZoneScreenIdentity() == identity)
+		return;
 	DEBUG_MID_LEVEL << Q_FUNC_INFO << identity;
 	setValue(Profile::Key::Grab::ZoneScreenIdentity, identity);
 }
@@ -1919,6 +1925,10 @@ Grab::GrabberType Settings::getGrabberType()
 	if (strGrabber == Profile::Value::GrabberType::MacAVFoundation)
 		return Grab::GrabberTypeMacAVFoundation;
 #endif
+#ifdef MAC_OS_SCK_GRAB_SUPPORT
+	if (strGrabber == Profile::Value::GrabberType::MacScreenCaptureKit)
+		return Grab::GrabberTypeMacScreenCaptureKit;
+#endif
 
 	qWarning() << Q_FUNC_INFO << Profile::Key::Grab::Grabber << "contains invalid value:" << strGrabber << ", reset it to default:" << Profile::Grab::GrabberDefaultString;
 	setGrabberType(Profile::Grab::GrabberDefault);
@@ -1977,6 +1987,11 @@ void Settings::setGrabberType(Grab::GrabberType grabberType)
 #ifdef MAC_OS_AV_GRAB_SUPPORT
 	case Grab::GrabberTypeMacAVFoundation:
 		strGrabber = Profile::Value::GrabberType::MacAVFoundation;
+		break;
+#endif
+#ifdef MAC_OS_SCK_GRAB_SUPPORT
+	case Grab::GrabberTypeMacScreenCaptureKit:
+		strGrabber = Profile::Value::GrabberType::MacScreenCaptureKit;
 		break;
 #endif
 

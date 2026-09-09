@@ -80,6 +80,7 @@ enum GrabberType {
 	GrabberTypeD3D9,
 	GrabberTypeMacCoreGraphics,
 	GrabberTypeMacAVFoundation,
+	GrabberTypeMacScreenCaptureKit,
 	GrabberTypeDDupl,
 
 	GrabbersCount,

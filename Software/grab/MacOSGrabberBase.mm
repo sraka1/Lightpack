@@ -25,7 +25,7 @@
 
 #include"MacOSGrabberBase.hpp"
 
-#if defined (MAC_OS_CG_GRAB_SUPPORT) || defined(MAC_OS_AV_GRAB_SUPPORT)
+#if defined (MAC_OS_CG_GRAB_SUPPORT) || defined(MAC_OS_AV_GRAB_SUPPORT) || defined(MAC_OS_SCK_GRAB_SUPPORT)
 
 #include <ApplicationServices/ApplicationServices.h>
 #include <Cocoa/Cocoa.h>

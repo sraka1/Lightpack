@@ -40,6 +40,7 @@
 #include "X11Grabber.hpp"
 #include "MacOSCGGrabber.hpp"
 #include "MacOSAVGrabber.h"
+#include "MacOSSCKGrabber.h"
 #include "D3D10Grabber.hpp"
 #include "GrabManager.hpp"
 #include "ScreenTopology.hpp"
@@ -827,6 +828,9 @@ void GrabManager::initGrabbers()
 #endif
 #ifdef MAC_OS_AV_GRAB_SUPPORT
 	m_grabbers[Grab::GrabberTypeMacAVFoundation] = initGrabber(new MacOSAVGrabber(NULL, m_grabberContext));
+#endif
+#ifdef MAC_OS_SCK_GRAB_SUPPORT
+	m_grabbers[Grab::GrabberTypeMacScreenCaptureKit] = initGrabber(new MacOSSCKGrabber(NULL, m_grabberContext));
 #endif
 #ifdef D3D10_GRAB_SUPPORT
 	if (Settings::isDx1011GrabberEnabled()) {

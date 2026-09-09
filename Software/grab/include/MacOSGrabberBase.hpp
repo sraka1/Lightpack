@@ -27,7 +27,7 @@
 
 #include "../common/defs.h"
 
-#if defined(MAC_OS_CG_GRAB_SUPPORT) || defined(MAC_OS_AV_GRAB_SUPPORT)
+#if defined(MAC_OS_CG_GRAB_SUPPORT) || defined(MAC_OS_AV_GRAB_SUPPORT) || defined(MAC_OS_SCK_GRAB_SUPPORT)
 
 #include "GrabberBase.hpp"
 #include <CoreGraphics/CoreGraphics.h>
