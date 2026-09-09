@@ -236,6 +236,8 @@ void LedDeviceAdalight::open()
 	{
 		DEBUG_LOW_LEVEL << Q_FUNC_INFO << "Serial device" << m_AdalightDevice->portName() << "open";
 		connect(m_AdalightDevice, &QSerialPort::readyRead, m_AdalightDevice, [this]() { m_AdalightDevice->readAll(); });
+		m_AdalightDevice->clear(QSerialPort::AllDirections);
+		m_lastWrite.invalidate();
 		ok = m_AdalightDevice->setBaudRate(m_baudRate);//Settings::getAdalightSerialPortBaudRate());
 		if (ok)
 		{
@@ -286,12 +288,29 @@ bool LedDeviceAdalight::writeBuffer(const QByteArray & buff)
 	if (m_AdalightDevice == NULL || m_AdalightDevice->isOpen() == false)
 		return false;
 
+	using namespace std::chrono_literals;
 	if (m_AdalightDevice->bytesToWrite() > 0) {
 		DEBUG_MID_LEVEL << Q_FUNC_INFO << "Serial bytesToWrite:" << m_AdalightDevice->bytesToWrite() << ", skipping current frame";
 		// If no more writes will be done ("Send data only of colors changed")
 		// re-schedule last skipped frame in case it's important (for ex a black frame to turn off)
-		using namespace std::chrono_literals;
 		m_lastWillTimer->start(100ms);
+		return true;
+	}
+	// Pace frames to the line rate. bytesToWrite() only covers QSerialPort's own
+	// buffer; the OS/USB-serial driver queue behind it absorbs seconds' worth of
+	// frames when we write faster than the line carries them (180 LEDs at
+	// 115200 baud = ~47 ms per frame vs a 25 ms grab interval), and the strip
+	// then lags 2-3 s behind the screen. Skip a frame while the previous one
+	// cannot have finished transmitting (10 bits per byte on the wire). Pace
+	// 10% slower than nominal: at exactly the nominal rate rounding and USB
+	// packetisation still let the driver queue (about 6 KB, i.e. ~0.5 s of
+	// frames, on an FTDI adapter) fill up over a minute, and that backlog is
+	// pure added latency. A slightly slower cadence keeps the queue empty.
+	const qint64 frameMs = (static_cast<qint64>(buff.size()) * 10 * 1000 * 11) / (qMax(1, m_baudRate) * 10) + 1;
+	if (m_lastWrite.isValid() && m_lastWrite.elapsed() < frameMs) {
+		const qint64 remaining = frameMs - m_lastWrite.elapsed();
+		DEBUG_HIGH_LEVEL << Q_FUNC_INFO << "line busy for another" << remaining << "ms, skipping current frame";
+		m_lastWillTimer->start(std::chrono::milliseconds(qMax<qint64>(1, remaining)));
 		return true;
 	}
 	m_lastWillTimer->stop();
@@ -305,6 +324,7 @@ bool LedDeviceAdalight::writeBuffer(const QByteArray & buff)
 		return false;
 	}
 
+	m_lastWrite.restart();
 	m_keepAliveTimer->start();
 	emit ioDeviceSuccess(true);
 	return true;

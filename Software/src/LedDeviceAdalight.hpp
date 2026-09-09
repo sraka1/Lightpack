@@ -26,6 +26,8 @@
 
 #pragma once
 
+#include <QElapsedTimer>
+
 #include "AbstractLedDevice.hpp"
 #include "colorspace_types.h"
 #include <QtSerialPort/QSerialPort>
@@ -71,4 +73,7 @@ private:
 	// Re-sends the last frame while the host is idle so sketches with a serial
 	// timeout (they blank the strip when frames stop) keep showing the last colors.
 	QTimer* m_keepAliveTimer{nullptr};
+	// Time of the last frame handed to the port; used to pace writes to the
+	// serial line rate (see writeBuffer()).
+	QElapsedTimer m_lastWrite;
 };
