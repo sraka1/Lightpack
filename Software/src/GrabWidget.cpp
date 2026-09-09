@@ -116,7 +116,16 @@ GrabWidget::~GrabWidget()
 
 QRect GrabWidget::deviceFrameGeometry() const
 {
-#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+#if defined(Q_OS_MACOS)
+	// The macOS grabbers report ScreenInfo::rect in global, device-independent
+	// coordinates (CGDisplayBounds) and carry the backing-store scale in
+	// GrabbedScreen::scale, which GrabberBase::grab() applies after translating
+	// the zone into the monitor. A screen-local, DPR-scaled rect (the Qt6 branch
+	// below) therefore lands every zone of a display whose origin is not (0,0)
+	// in the wrong place - shifted by the display origin or "out of screen" -
+	// and double-scales Retina displays.
+	return frameGeometry();
+#elif (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
 	// Qt6 uses device independent coordinates but our captured image is in device coordinates.
 	// Move an scale the rect from its device-independent position to its pyhsical.
 	QPoint widgetTopLeft = frameGeometry().topLeft();
