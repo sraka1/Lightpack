@@ -128,6 +128,12 @@ protected:
 	QList<WBAdjustment> m_wbAdjustments;
 
 	QList<LinearRgbF> m_colorsSaved;
+	// LedDeviceManager starts a 500 ms command timeout for every setter and
+	// dispatches them with updateColors=false while the backlight is off; a
+	// setter that repaints nothing must still emit commandCompleted(), or the
+	// manager times out and recreates the device (which resets an Arduino on
+	// DTR). updateDeviceSettings() batches the setters and completes once.
+	bool m_isBatchUpdating{false};
 	QList<StructRgb> m_colorsBuffer;
 	bool m_colorFeedbackEnabled{ false };
 };

@@ -48,48 +48,64 @@ void AbstractLedDevice::setGamma(double value, bool updateColors) {
 	m_gamma = value;
 	if (updateColors)
 		setColors(m_colorsSaved);
+	else if (!m_isBatchUpdating)
+		emit commandCompleted(true);
 }
 
 void AbstractLedDevice::setBrightness(int value, bool updateColors) {
 	m_brightness = value;
 	if (updateColors)
 		setColors(m_colorsSaved);
+	else if (!m_isBatchUpdating)
+		emit commandCompleted(true);
 }
 
 void AbstractLedDevice::setBrightnessCap(int value, bool updateColors) {
 	m_brightnessCap = value;
 	if (updateColors)
 		setColors(m_colorsSaved);
+	else if (!m_isBatchUpdating)
+		emit commandCompleted(true);
 }
 
 void AbstractLedDevice::setDitheringEnabled(bool value, bool updateColors) {
 	m_isDitheringEnabled = value;
 	if (updateColors)
 		setColors(m_colorsSaved);
+	else if (!m_isBatchUpdating)
+		emit commandCompleted(true);
 }
 
 void AbstractLedDevice::setLedMilliAmps(const int value, const bool updateColors) {
 	m_ledMilliAmps = value;
 	if (updateColors)
 		setColors(m_colorsSaved);
+	else if (!m_isBatchUpdating)
+		emit commandCompleted(true);
 }
 
 void AbstractLedDevice::setPowerSupplyAmps(const double value, const bool updateColors) {
 	m_powerSupplyAmps = value;
 	if (updateColors)
 		setColors(m_colorsSaved);
+	else if (!m_isBatchUpdating)
+		emit commandCompleted(true);
 }
 
 void AbstractLedDevice::setLuminosityThreshold(int value, bool updateColors) {
 	m_luminosityThreshold = value;
 	if (updateColors)
 		setColors(m_colorsSaved);
+	else if (!m_isBatchUpdating)
+		emit commandCompleted(true);
 }
 
 void AbstractLedDevice::setMinimumLuminosityThresholdEnabled(bool value, bool updateColors) {
 	m_isMinimumLuminosityEnabled = value;
 	if (updateColors)
 		setColors(m_colorsSaved);
+	else if (!m_isBatchUpdating)
+		emit commandCompleted(true);
 }
 
 void AbstractLedDevice::updateWBAdjustments() {
@@ -101,11 +117,15 @@ void AbstractLedDevice::updateWBAdjustments(const QList<WBAdjustment> &coefs, bo
 	m_wbAdjustments.append(coefs);
 	if (updateColors)
 		setColors(m_colorsSaved);
+	else if (!m_isBatchUpdating)
+		emit commandCompleted(true);
 }
 
 void AbstractLedDevice::updateDeviceSettings()
 {
 	using namespace SettingsScope;
+	// Not a manager command: the setters below must not each report completion.
+	m_isBatchUpdating = true;
 	setGamma(Settings::getDeviceOutputGamma(), false);
 	setBrightness(Settings::getDeviceBrightness(), false);
 	setBrightnessCap(Settings::getDeviceBrightnessCap(), false);
@@ -113,6 +133,7 @@ void AbstractLedDevice::updateDeviceSettings()
 	setMinimumLuminosityThresholdEnabled(Settings::isMinimumLuminosityEnabled(), false);
 	setDitheringEnabled(Settings::isDeviceDitheringEnabled(), false);
 	updateWBAdjustments(Settings::getLedCoefs(), false);
+	m_isBatchUpdating = false;
 
 	setColors(m_colorsSaved);
 }
