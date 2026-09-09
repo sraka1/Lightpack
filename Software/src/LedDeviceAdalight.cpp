@@ -30,6 +30,7 @@
 #include "debug.h"
 #include "stdio.h"
 #include <QtSerialPort/QSerialPortInfo>
+#include <algorithm>
 
 using namespace SettingsScope;
 
@@ -87,6 +88,16 @@ void LedDeviceAdalight::close()
 
 void LedDeviceAdalight::setColors(const QList<LinearRgbF> & colors)
 {
+	// A black frame arriving while the strip is off is a settings re-apply
+	// (updateDeviceSettings / setColorSequence), not a request to light up:
+	// keep it a raw off frame instead of pushing black through the colour
+	// pipeline, whose minimum-luminosity floor would make it dim grey.
+	const bool wasOff = m_isOff;
+	m_isOff = false;
+	if (wasOff && std::all_of(colors.cbegin(), colors.cend(), [](const LinearRgbF& c) { return c.r == 0.f && c.g == 0.f && c.b == 0.f; })) {
+		switchOffLeds();
+		return;
+	}
 	// Save colors for showing changes of the brightness
 	m_colorsSaved = colors;
 
@@ -147,7 +158,15 @@ void LedDeviceAdalight::setColors(const QList<LinearRgbF> & colors)
 
 void LedDeviceAdalight::switchOffLeds()
 {
+	m_isOff = true;
 	int count = m_colorsSaved.count();
+	// Before the first setColors() (e.g. the app starts with the backlight
+	// off) nothing is saved yet; still send a real black frame for the
+	// configured strip, otherwise nothing at all goes out and the board keeps
+	// showing whatever its sketch does on boot.
+	if (count == 0)
+		count = Settings::getNumberOfLeds(SupportedDevices::DeviceTypeAdalight);
+	resizeColorsBuffer(count);
 	m_colorsSaved.clear();
 
 	for (int i = 0; i < count; i++)
@@ -187,7 +206,10 @@ void LedDeviceAdalight::setColorSequence(const QString& value)
 	DEBUG_LOW_LEVEL << Q_FUNC_INFO << value;
 
 	m_colorSequence = value;
-	setColors(m_colorsSaved);
+	if (m_isOff)
+		switchOffLeds();
+	else
+		setColors(m_colorsSaved);
 }
 
 void LedDeviceAdalight::requestFirmwareVersion()
@@ -214,7 +236,7 @@ void LedDeviceAdalight::open()
 	else
 		m_AdalightDevice = new QSerialPort();
 
-	m_AdalightDevice->setPortName(m_portName);// Settings::getAdalightSerialPortName());
+	m_AdalightDevice->setPortName(resolvePortName());
 
 	// ReadWrite, not WriteOnly: with a write-only QSerialPort on macOS the device
 	// thread's poll() loop spins at 100% CPU (reproduced with a minimal Qt program;
@@ -268,6 +290,43 @@ void LedDeviceAdalight::open()
 	emit openDeviceSuccess(ok);
 }
 
+// The configured port name, unless it is gone and exactly one other USB
+// serial adapter (or one with the same vendor/product id as the adapter we
+// last opened) is present. macOS names adapters without a serial number by
+// USB location, so moving the cable to another port or hub renames it.
+QString LedDeviceAdalight::resolvePortName()
+{
+	const QList<QSerialPortInfo> ports = QSerialPortInfo::availablePorts();
+	for (const QSerialPortInfo& p : ports) {
+		if (p.portName() == m_portName || p.systemLocation() == m_portName) {
+			if (p.hasVendorIdentifier()) { m_lastVendorId = p.vendorIdentifier(); m_lastProductId = p.productIdentifier(); }
+			return m_portName;
+		}
+	}
+	// macOS exposes every adapter twice (tty.* and cu.*); count only the cu.*
+	// call-out node, which is the one we want to open anyway.
+	QList<QSerialPortInfo> usb;
+	for (const QSerialPortInfo& p : ports)
+		if (p.hasVendorIdentifier() && !p.portName().startsWith(QStringLiteral("tty."))
+				&& !p.portName().contains(QStringLiteral("Bluetooth"), Qt::CaseInsensitive))
+			usb << p;
+	const QSerialPortInfo* pick = nullptr;
+	if (m_lastVendorId) {
+		for (const QSerialPortInfo& p : usb)
+			if (p.vendorIdentifier() == m_lastVendorId && p.productIdentifier() == m_lastProductId) { pick = &p; break; }
+	}
+	if (!pick && usb.size() == 1)
+		pick = &usb.first();
+	if (!pick) {
+		qWarning() << Q_FUNC_INFO << "configured port" << m_portName << "not present and no unambiguous USB serial replacement (" << usb.size() << "candidates)";
+		return m_portName;
+	}
+	qWarning() << Q_FUNC_INFO << "configured port" << m_portName << "not present, using" << pick->systemLocation()
+			   << "(vid" << Qt::hex << pick->vendorIdentifier() << "pid" << pick->productIdentifier() << ")";
+	m_lastVendorId = pick->vendorIdentifier(); m_lastProductId = pick->productIdentifier();
+	return pick->systemLocation();
+}
+
 void LedDeviceAdalight::writeLastWill()
 {
 	writeLastWill(false);
@@ -276,8 +335,11 @@ void LedDeviceAdalight::writeLastWill()
 void LedDeviceAdalight::writeLastWill(const bool force)
 {
 	if (force || m_AdalightDevice->bytesToWrite() == 0) {
-		DEBUG_MID_LEVEL << Q_FUNC_INFO << "Writing last will frame";
-		setColors(m_colorsSaved);
+		DEBUG_MID_LEVEL << Q_FUNC_INFO << "Writing last will frame" << (m_isOff ? "(off)" : "");
+		if (m_isOff)
+			switchOffLeds();
+		else
+			setColors(m_colorsSaved);
 	}
 }
 

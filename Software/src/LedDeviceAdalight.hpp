@@ -59,6 +59,7 @@ public slots:
 
 private:
 	bool writeBuffer(const QByteArray & buff);
+	QString resolvePortName();
 	void resizeColorsBuffer(int buffSize);
 	void reinitBufferHeader(int ledsCount);
 
@@ -76,4 +77,10 @@ private:
 	// Time of the last frame handed to the port; used to pace writes to the
 	// serial line rate (see writeBuffer()).
 	QElapsedTimer m_lastWrite;
+	// True after switchOffLeds() until the next setColors(): re-sends must then
+	// repeat the raw black frame, not push black through the colour pipeline
+	// (whose minimum-luminosity floor would turn it into dim grey).
+	bool m_isOff{false};
+	quint16 m_lastVendorId{0};
+	quint16 m_lastProductId{0};
 };
