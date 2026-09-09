@@ -2038,6 +2038,13 @@ Boosts near-white, low-saturation pixels (lens flares, bright highlights) to mak
           </property>
          </widget>
         </item>
+        <item row="26" column="0" colspan="6">
+         <widget class="QCheckBox" name="checkBox_FollowScreenBrightness">
+          <property name="text">
+           <string>Follow monitor brightness (via Lunar): dim the LEDs with the screen</string>
+          </property>
+         </widget>
+        </item>
         <item row="25" column="0">
          <spacer name="verticalSpacer_2">
           <property name="orientation">

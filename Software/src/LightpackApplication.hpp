@@ -28,6 +28,7 @@
 
 #include "SettingsWindow.hpp"
 #include "LedDeviceManager.hpp"
+#include "ScreenBrightnessFollower.hpp"
 #include "qtsingleapplication.h"
 
 #include <memory>
@@ -114,6 +115,7 @@ private:
 	SettingsWindow *m_settingsWindow{nullptr};
 	ApiServer *m_apiServer{nullptr};
 	LedDeviceManager *m_ledDeviceManager{nullptr};
+	ScreenBrightnessFollower *m_brightnessFollower{nullptr};
 	QThread *m_ledDeviceManagerThread{nullptr};
 	QThread *m_apiServerThread{nullptr};
 	GrabManager *m_grabManager{nullptr};

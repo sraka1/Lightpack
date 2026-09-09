@@ -63,6 +63,7 @@ signals:
 	void ledDeviceSetSmoothSlowdown(int value);
 	void ledDeviceSetGamma(double value, bool);
 	void ledDeviceSetBrightness(int value, bool);
+	void ledDeviceSetBrightnessScale(double value, bool);
 	void ledDeviceSetBrightnessCap(int value, bool);
 	void ledDeviceSetLuminosityThreshold(int value, bool);
 	void ledDeviceSetMinimumLuminosityEnabled(bool, bool);
@@ -89,6 +90,7 @@ public slots:
 	void setSmoothSlowdown(int value);
 	void setGamma(double value);
 	void setBrightness(int value);
+	void setBrightnessScale(double value);
 	void setBrightnessCap(int value);
 	void setLuminosityThreshold(int value);
 	void setMinimumLuminosityEnabled(bool value);
@@ -130,6 +132,7 @@ private:
 	int m_savedSmoothSlowdown;
 	double m_savedGamma;
 	int m_savedBrightness;
+	double m_savedBrightnessScale{1.0};
 	int m_savedBrightnessCap;
 	int m_savedLuminosityThreshold;
 	bool m_savedIsMinimumLuminosityEnabled;

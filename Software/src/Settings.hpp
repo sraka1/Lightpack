@@ -148,6 +148,10 @@ public:
 	static bool isKeepLightsOnAfterScreenDisconnect();
 	static void setKeepLightsOnAfterScreenDisconnect(bool isEnabled);
 	static bool isPingDeviceEverySecond();
+	static bool isFollowScreenBrightness();
+	static void setFollowScreenBrightness(bool isEnabled);
+	static int getFollowScreenBrightnessMin();
+	static void setFollowScreenBrightnessMin(int percent);
 	static void setPingDeviceEverySecond(bool isEnabled);
 	static bool isUpdateFirmwareMessageShown();
 	static void setUpdateFirmwareMessageShown(bool isShown);
@@ -407,6 +411,8 @@ signals:
 	// Phase 1
 	void keepLightsOnAfterScreenDisconnectChanged(bool isEnabled);
 	void pingDeviceEverySecondEnabledChanged(bool);
+	void followScreenBrightnessChanged(bool);
+	void followScreenBrightnessMinChanged(int);
 
 	void languageChanged(const QString &);
 	void debugLevelChanged(int);

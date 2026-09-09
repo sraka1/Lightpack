@@ -33,6 +33,7 @@
 #include "LightpackApplication.hpp"
 
 #include "SettingsWindow.hpp"
+#include "ScreenBrightnessFollower.hpp"
 #include "ui_SettingsWindow.h"
 
 #include "Settings.hpp"
@@ -427,6 +428,19 @@ void SettingsWindow::connectSignalsSlots()
 	connect(ui->spinBox_LoggingLevel, qOverload<int>(&QSpinBox::valueChanged), this, &SettingsWindow::onLoggingLevel_valueChanged);
 	connect(ui->toolButton_OpenLogs, &QToolButton::clicked, this, &SettingsWindow::onOpenLogs_clicked);
 	connect(ui->checkBox_PingDeviceEverySecond, &QCheckBox::toggled, this, &SettingsWindow::onPingDeviceEverySecond_Toggled);
+	connect(ui->checkBox_FollowScreenBrightness, &QCheckBox::toggled, this, &SettingsWindow::onFollowScreenBrightness_Toggled);
+	ui->checkBox_FollowScreenBrightness->setEnabled(ScreenBrightnessFollower::isAvailable());
+	if (!ScreenBrightnessFollower::isAvailable())
+		ui->checkBox_FollowScreenBrightness->setToolTip(tr("Requires Lunar (lunar.fyi) to be installed"));
+	// Keep the checkbox and the tray item in step whichever one flipped the setting.
+	connect(Settings::settingsSingleton(), &Settings::followScreenBrightnessChanged, this, [this](bool on) {
+		if (ui->checkBox_FollowScreenBrightness->isChecked() != on) {
+			const bool was = updatingFromSettings; updatingFromSettings = true;
+			ui->checkBox_FollowScreenBrightness->setChecked(on);
+			updatingFromSettings = was;
+		}
+		if (m_trayIcon) m_trayIcon->setFollowBrightness(on);
+	});
 
 	//Plugins
 	//	connected during setupUi by name:
@@ -1034,6 +1048,14 @@ void SettingsWindow::onApiServer_ErrorOnStartListening(const QString& errorMessa
 {
 	ui->lineEdit_ApiPort->setStyleSheet(QStringLiteral("background-color:red;"));
 	ui->lineEdit_ApiPort->setToolTip(errorMessage);
+}
+
+void SettingsWindow::onFollowScreenBrightness_Toggled(bool state)
+{
+	DEBUG_LOW_LEVEL << Q_FUNC_INFO << state;
+	if (updatingFromSettings)
+		return;
+	Settings::setFollowScreenBrightness(state);
 }
 
 void SettingsWindow::onPingDeviceEverySecond_Toggled(bool state)
@@ -2228,6 +2250,7 @@ void SettingsWindow::updateUiFromSettings()
 	ui->checkBox_KeepLightsOnAfterSuspend->setChecked				(Settings::isKeepLightsOnAfterSuspend());
 	ui->checkBox_KeepLightsOnAfterScreenOff->setChecked				(Settings::isKeepLightsOnAfterScreenOff());
 	ui->checkBox_PingDeviceEverySecond->setChecked					(Settings::isPingDeviceEverySecond());
+	ui->checkBox_FollowScreenBrightness->setChecked					(Settings::isFollowScreenBrightness());
 
 	ui->checkBox_GrabIsAvgColors->setChecked							(Settings::isGrabAvgColorsEnabled());
 	ui->spinBox_GrabSlowdown->setValue								(Settings::getGrabSlowdown());

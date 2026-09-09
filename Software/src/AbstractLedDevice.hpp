@@ -77,6 +77,7 @@ public slots:
 	virtual void setSmoothSlowdown(int value) = 0;
 	virtual void setGamma(double value, bool updateColors = true);
 	virtual void setBrightness(int value, bool updateColors = true);
+	virtual void setBrightnessScale(double value, bool updateColors);
 	virtual void setBrightnessCap(int value, bool updateColors = true);
 	virtual void setDitheringEnabled(bool value, bool updateColors = true);
 	virtual void setLedMilliAmps(const int value, const bool updateColors = true);
@@ -118,6 +119,9 @@ protected:
 	/*! Holds Device/OutputGamma (unified render transform γ_out). */
 	double m_gamma{ SettingsScope::Profile::Device::OutputGammaDefault };
 	int m_brightness{ SettingsScope::Profile::Device::BrightnessDefault };
+	// Runtime multiplier on m_brightness (0..1), driven by ScreenBrightnessFollower;
+	// never persisted, so the profile's own brightness stays the ceiling.
+	double m_brightnessScale{ 1.0 };
 	int m_brightnessCap{ SettingsScope::Profile::Device::BrightnessCapDefault };
 	int m_ledMilliAmps{ SettingsScope::Main::Device::LedMilliAmpsDefault };
 	double m_powerSupplyAmps{ SettingsScope::Main::Device::PowerSupplyAmpsDefault };

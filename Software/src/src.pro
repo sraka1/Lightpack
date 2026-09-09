@@ -325,6 +325,7 @@ SOURCES += \
     LedDeviceManager.cpp \
     SelectWidget.cpp \
     GrabManager.cpp \
+    ScreenBrightnessFollower.cpp \
     AbstractLedDevice.cpp \
     PluginsManager.cpp \
     Plugin.cpp \
@@ -362,6 +363,7 @@ HEADERS += \
     version.h \
     TimeEvaluations.hpp \
     GrabManager.hpp \
+    ScreenBrightnessFollower.hpp \
     GrabWidget.hpp \
     GrabConfigWidget.hpp \
     debug.h \

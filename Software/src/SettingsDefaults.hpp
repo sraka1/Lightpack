@@ -86,6 +86,9 @@ static const bool IsKeepLightsOnAfterScreenOff = true;
 // Phase 1: default false = turn lights off when zone screen disconnects.
 static const bool IsKeepLightsOnAfterScreenDisconnect = false;
 static const bool IsPingDeviceEverySecond = true;
+// Scale the LED brightness with the zone screen's brightness as reported by Lunar (macOS).
+static const bool IsFollowScreenBrightness = false;
+static const int FollowScreenBrightnessMin = 15; // LED brightness (% of the profile value) at screen brightness 0
 static const bool IsUpdateFirmwareMessageShown = false;
 static const QString ConnectedDeviceDefault = QStringLiteral("Lightpack");
 static const QString SupportedDevices = QStringLiteral(SUPPORTED_DEVICES); /* comma separated values! */

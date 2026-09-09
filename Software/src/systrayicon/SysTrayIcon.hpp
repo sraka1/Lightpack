@@ -72,6 +72,7 @@ public:
 	void showMessage(const Message msg);
 	void setStatus(const Status status, const QString *arg = NULL);
 	void updateProfiles();
+	void setFollowBrightness(bool on);
 	QString toolTip() const;
 	void hide();
 	void show();
@@ -105,6 +106,7 @@ private:
 	QAction * _switchOnBacklightAction;
 	QAction * _switchOffBacklightAction;
 	QAction * _settingsAction;
+	QAction * _followBrightnessAction;
 	QAction * _quitAction;
 	QMenu * _profilesMenu;
 	SysTrayIcon::Message _trayMessage;

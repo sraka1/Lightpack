@@ -797,6 +797,13 @@ void LightpackApplication::startLedDeviceManager()
 	connect(settings(), &Settings::deviceDitheringEnabledChanged,	m_ledDeviceManager, &LedDeviceManager::setDitheringEnabled,			Qt::QueuedConnection);
 	connect(settings(), &Settings::deviceBrightnessChanged,			m_ledDeviceManager, &LedDeviceManager::setBrightness,					Qt::QueuedConnection);
 	connect(settings(), &Settings::deviceBrightnessCapChanged,		m_ledDeviceManager, &LedDeviceManager::setBrightnessCap,				Qt::QueuedConnection);
+	// Follow the monitor's brightness (Lunar): a runtime multiplier on the profile brightness.
+	m_brightnessFollower = new ScreenBrightnessFollower(this);
+	connect(m_brightnessFollower, &ScreenBrightnessFollower::scaleChanged,	m_ledDeviceManager, &LedDeviceManager::setBrightnessScale,				Qt::QueuedConnection);
+	connect(settings(), &Settings::followScreenBrightnessChanged,		m_brightnessFollower, &ScreenBrightnessFollower::setEnabled);
+	connect(settings(), &Settings::followScreenBrightnessMinChanged,	m_brightnessFollower, &ScreenBrightnessFollower::setMinimumPercent);
+	m_brightnessFollower->setMinimumPercent(Settings::getFollowScreenBrightnessMin());
+	m_brightnessFollower->setEnabled(Settings::isFollowScreenBrightness());
 	connect(settings(), &Settings::luminosityThresholdChanged,		m_ledDeviceManager, &LedDeviceManager::setLuminosityThreshold,			Qt::QueuedConnection);
 	connect(settings(), &Settings::minimumLuminosityEnabledChanged,	m_ledDeviceManager, &LedDeviceManager::setMinimumLuminosityEnabled,	Qt::QueuedConnection);
 	connect(settings(), &Settings::ledCoefBlueChanged,			m_ledDeviceManager, &LedDeviceManager::updateWBAdjustments,				Qt::QueuedConnection);

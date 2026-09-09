@@ -60,6 +60,14 @@ void AbstractLedDevice::setBrightness(int value, bool updateColors) {
 		emit commandCompleted(true);
 }
 
+void AbstractLedDevice::setBrightnessScale(double value, bool updateColors) {
+	m_brightnessScale = qBound(0.0, value, 1.0);
+	if (updateColors)
+		setColors(m_colorsSaved);
+	else if (!m_isBatchUpdating)
+		emit commandCompleted(true);
+}
+
 void AbstractLedDevice::setBrightnessCap(int value, bool updateColors) {
 	m_brightnessCap = value;
 	if (updateColors)
@@ -142,7 +150,7 @@ ColorOps::DeviceStageParams AbstractLedDevice::deviceStageParams() const
 {
 	ColorOps::DeviceStageParams p;
 	p.outputGamma = static_cast<float>(m_gamma);
-	p.brightnessPercent = m_brightness;
+	p.brightnessPercent = static_cast<decltype(p.brightnessPercent)>(m_brightness * m_brightnessScale);
 	p.brightnessCapPercent = static_cast<float>(m_brightnessCap);
 	p.luminosityThreshold = m_luminosityThreshold;
 	p.minimumLuminosityEnabled = m_isMinimumLuminosityEnabled;

@@ -45,6 +45,7 @@ SysTrayIcon::SysTrayIcon(QObject *parent) :
 	trayIconMenu->addAction(_switchOffBacklightAction);
 	trayIconMenu->addSeparator();
 	trayIconMenu->addMenu(_profilesMenu);
+	trayIconMenu->addAction(_followBrightnessAction);
 	trayIconMenu->addAction(_settingsAction);
 	trayIconMenu->addSeparator();
 	trayIconMenu->addAction(_quitAction);
@@ -204,6 +205,12 @@ void SysTrayIcon::setStatus(const Status status, const QString *arg)
 	_status = status;
 }
 
+void SysTrayIcon::setFollowBrightness(bool on)
+{
+	if (_followBrightnessAction && _followBrightnessAction->isChecked() != on)
+		_followBrightnessAction->setChecked(on);
+}
+
 void SysTrayIcon::updateProfiles()
 {
 	fillProfilesFromSettings();
@@ -337,6 +344,13 @@ void SysTrayIcon::createActions()
 	_settingsAction = new QAction(QIcon(":/icons/settings.png"), tr("&Settings"), this);
 	_settingsAction->setIconVisibleInMenu(true);
 	connect(_settingsAction, &QAction::triggered, this, &SysTrayIcon::showSettings);
+
+	_followBrightnessAction = new QAction(tr("Follow &monitor brightness"), this);
+	_followBrightnessAction->setCheckable(true);
+	_followBrightnessAction->setChecked(SettingsScope::Settings::isFollowScreenBrightness());
+	connect(_followBrightnessAction, &QAction::triggered, this, [](bool checked) {
+		SettingsScope::Settings::setFollowScreenBrightness(checked);
+	});
 
 	_quitAction = new QAction(tr("&Quit"), this);
 	connect(_quitAction, &QAction::triggered, this, &SysTrayIcon::quit);

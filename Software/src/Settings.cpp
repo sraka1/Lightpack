@@ -76,6 +76,8 @@ static const QString IsKeepLightsOnAfterScreenOff = QStringLiteral("IsKeepLights
 // Phase 1: keep lights on when the monitor that holds LED zones is disconnected.
 static const QString IsKeepLightsOnAfterScreenDisconnect = QStringLiteral("IsKeepLightsOnAfterScreenDisconnect");
 static const QString IsPingDeviceEverySecond = QStringLiteral("IsPingDeviceEverySecond");
+static const QString IsFollowScreenBrightness = QStringLiteral("IsFollowScreenBrightness");
+static const QString FollowScreenBrightnessMin = QStringLiteral("FollowScreenBrightnessMin");
 static const QString IsUpdateFirmwareMessageShown = QStringLiteral("IsUpdateFirmwareMessageShown");
 static const QString ConnectedDevice = QStringLiteral("ConnectedDevice");
 static const QString SupportedDevices = QStringLiteral("SupportedDevices");
@@ -361,6 +363,8 @@ bool Settings::Initialize( const QString & applicationDirPath, bool isDebugLevel
 	// Phase 1
 	setNewOptionMain(Main::Key::IsKeepLightsOnAfterScreenDisconnect, Main::IsKeepLightsOnAfterScreenDisconnect);
 	setNewOptionMain(Main::Key::IsPingDeviceEverySecond,Main::IsPingDeviceEverySecond);
+	setNewOptionMain(Main::Key::IsFollowScreenBrightness,Main::IsFollowScreenBrightness);
+	setNewOptionMain(Main::Key::FollowScreenBrightnessMin,Main::FollowScreenBrightnessMin);
 	setNewOptionMain(Main::Key::IsUpdateFirmwareMessageShown, Main::IsUpdateFirmwareMessageShown);
 	setNewOptionMain(Main::Key::ConnectedDevice,		Main::ConnectedDeviceDefault);
 	setNewOptionMain(Main::Key::SupportedDevices,		Main::SupportedDevices, true /* always rewrite this information to main config */);
@@ -824,6 +828,32 @@ void Settings::setPingDeviceEverySecond(bool isEnabled)
 	DEBUG_LOW_LEVEL << Q_FUNC_INFO;
 	setValueMain(Main::Key::IsPingDeviceEverySecond, isEnabled);
 	emit m_this->pingDeviceEverySecondEnabledChanged(isEnabled);
+}
+
+bool Settings::isFollowScreenBrightness()
+{
+	return valueMain(Main::Key::IsFollowScreenBrightness).toBool();
+}
+
+void Settings::setFollowScreenBrightness(bool isEnabled)
+{
+	DEBUG_LOW_LEVEL << Q_FUNC_INFO << isEnabled;
+	if (isFollowScreenBrightness() == isEnabled)
+		return;
+	setValueMain(Main::Key::IsFollowScreenBrightness, isEnabled);
+	emit m_this->followScreenBrightnessChanged(isEnabled);
+}
+
+int Settings::getFollowScreenBrightnessMin()
+{
+	return qBound(0, valueMain(Main::Key::FollowScreenBrightnessMin).toInt(), 100);
+}
+
+void Settings::setFollowScreenBrightnessMin(int percent)
+{
+	DEBUG_LOW_LEVEL << Q_FUNC_INFO << percent;
+	setValueMain(Main::Key::FollowScreenBrightnessMin, qBound(0, percent, 100));
+	emit m_this->followScreenBrightnessMinChanged(qBound(0, percent, 100));
 }
 
 bool Settings::isUpdateFirmwareMessageShown()

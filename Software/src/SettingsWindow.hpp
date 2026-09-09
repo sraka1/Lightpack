@@ -118,6 +118,7 @@ public slots:
 	void setColorFeedbackForced(bool forced);
 	void onApiServer_ErrorOnStartListening(const QString& errorMessage);
 	void onPingDeviceEverySecond_Toggled(bool state);
+	void onFollowScreenBrightness_Toggled(bool state);
 	void processMessage(const QString &message);
 
 	void updateAvailableMoodLampLamps(const QList<MoodLampLampInfo> & lamps, int recommended);

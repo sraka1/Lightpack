@@ -184,6 +184,7 @@ enum Cmd {
 	SetGamma,
 	SetBrightness,
 	SetBrightnessCap,
+	SetBrightnessScale,
 	SetLuminosityThreshold,
 	SetMinimumLuminosityEnabled,
 	SetDitheringEnabled,

@@ -277,6 +277,21 @@ void LedDeviceManager::setBrightness(int value)
 	}
 }
 
+void LedDeviceManager::setBrightnessScale(double value)
+{
+	DEBUG_MID_LEVEL << Q_FUNC_INFO << value << "Is last command completed:" << m_isLastCommandCompleted;
+
+	if (m_isLastCommandCompleted)
+	{
+		m_isLastCommandCompleted = false;
+		m_cmdTimeoutTimer->start();
+		emit ledDeviceSetBrightnessScale(value, m_backlightStatus != Backlight::StatusOff);
+	} else {
+		m_savedBrightnessScale = value;
+		cmdQueueAppend(LedDeviceCommands::SetBrightnessScale);
+	}
+}
+
 void LedDeviceManager::setBrightnessCap(int value)
 {
 	DEBUG_MID_LEVEL << Q_FUNC_INFO << value << "Is last command completed:" << m_isLastCommandCompleted;
@@ -599,6 +614,7 @@ void LedDeviceManager::connectSignalSlotsLedDevice()
 	connect(this, &LedDeviceManager::ledDeviceSetSmoothSlowdown,				m_ledDevice, &AbstractLedDevice::setSmoothSlowdown,						Qt::QueuedConnection);
 	connect(this, &LedDeviceManager::ledDeviceSetGamma,				m_ledDevice, &AbstractLedDevice::setGamma,						Qt::QueuedConnection);
 	connect(this, &LedDeviceManager::ledDeviceSetBrightness,			m_ledDevice, &AbstractLedDevice::setBrightness,					Qt::QueuedConnection);
+	connect(this, &LedDeviceManager::ledDeviceSetBrightnessScale,		m_ledDevice, &AbstractLedDevice::setBrightnessScale,				Qt::QueuedConnection);
 	connect(this, &LedDeviceManager::ledDeviceSetBrightnessCap,			m_ledDevice, &AbstractLedDevice::setBrightnessCap,					Qt::QueuedConnection);
 	connect(this, &LedDeviceManager::ledDeviceSetColorSequence,			m_ledDevice, &AbstractLedDevice::setColorSequence,					Qt::QueuedConnection);
 	connect(this, &LedDeviceManager::ledDeviceSetLuminosityThreshold,	m_ledDevice, &AbstractLedDevice::setLuminosityThreshold,			Qt::QueuedConnection);
@@ -683,6 +699,11 @@ void LedDeviceManager::cmdQueueProcessNext()
 		case LedDeviceCommands::SetBrightness:
 			m_cmdTimeoutTimer->start();
 			emit ledDeviceSetBrightness(m_savedBrightness, m_backlightStatus != Backlight::StatusOff);
+			break;
+
+		case LedDeviceCommands::SetBrightnessScale:
+			m_cmdTimeoutTimer->start();
+			emit ledDeviceSetBrightnessScale(m_savedBrightnessScale, m_backlightStatus != Backlight::StatusOff);
 			break;
 
 		case LedDeviceCommands::SetBrightnessCap:
