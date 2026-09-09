@@ -197,6 +197,7 @@ static const int HostSmoothingDurationMax = 400;
 static const QString ContentAspectPresetDefault = QStringLiteral("fill");
 static const QString LayoutRecipeDefault = QStringLiteral("");
 static const QString ZoneScreenIdentityDefault = QStringLiteral("");
+static const QString ZoneScreenOriginDefault = QStringLiteral("");
 static const int LuminosityThresholdMin = 0;
 static const int LuminosityThresholdDefault = 3;
 static const int LuminosityThresholdMax = 100;

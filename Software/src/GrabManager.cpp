@@ -434,6 +434,9 @@ void GrabManager::settingsProfileChanged(const QString &profileName)
 	syncHostSmoothingEnabled();
 
 	setNumberOfLeds(Settings::getNumberOfLeds(Settings::getConnectedDevice()));
+	// The display layout may differ from the one the zones were saved under
+	// (e.g. the app starts in clamshell mode): shift them before recording.
+	realignZonesToScreen();
 	persistZoneScreenIdentity();
 }
 
@@ -724,6 +727,7 @@ void GrabManager::restoreLedPositionsFromSettings()
 	for (int i = 0; i < m_ledWidgets.size(); i++)
 		m_ledWidgets[i]->settingsProfileChanged();
 
+	realignZonesToScreen();
 	persistZoneScreenIdentity();
 	evaluateZoneScreenAvailability();
 	emit changeScreen();
@@ -755,8 +759,50 @@ void GrabManager::persistZoneScreenIdentity()
 
 	const ScreenTopology::Identity primary =
 		ScreenTopology::primaryScreenForZones(zoneCenters(), topology);
-	if (!primary.isEmpty())
-		Settings::setZoneScreenIdentity(primary.toSettingsString());
+	if (primary.isEmpty())
+		return;
+	const bool identityChanged = Settings::getZoneScreenIdentity() != primary.toSettingsString();
+	Settings::setZoneScreenIdentity(primary.toSettingsString());
+	// Record where that screen sits now, so a later move can be compensated.
+	// Only on first use or when zones moved to another screen: while the
+	// identity is stable, realignZonesToScreen() owns the origin.
+	QPoint saved;
+	if ((identityChanged || !Settings::getZoneScreenOrigin(saved)) && topology.contains(primary.name))
+		Settings::setZoneScreenOrigin(topology.value(primary.name).geometry.topLeft());
+}
+
+// Zone positions are absolute desktop coordinates. If the screen they were
+// drawn on is present but at a different desktop origin than when they were
+// saved (clamshell mode, rearranged displays), shift every zone by the delta
+// and persist the new origin, so the zones keep covering the same pixels.
+void GrabManager::realignZonesToScreen()
+{
+	const ScreenTopology::Identity saved =
+		ScreenTopology::Identity::fromSettingsString(Settings::getZoneScreenIdentity());
+	QPoint savedOrigin;
+	if (saved.isEmpty() || !Settings::getZoneScreenOrigin(savedOrigin))
+		return;
+
+	for (auto it = m_lastScreenGeometry.constBegin(); it != m_lastScreenGeometry.constEnd(); ++it) {
+		const QScreen* screen = it.key();
+		if (!screen)
+			continue;
+		const ScreenTopology::Identity id{ screen->name(), screen->manufacturer(), screen->serialNumber() };
+		if (id != saved)
+			continue;
+		const QPoint delta = it.value().topLeft() - savedOrigin;
+		if (delta.isNull())
+			return;
+		qWarning() << Q_FUNC_INFO << "zone screen" << saved.toSettingsString() << "moved from" << savedOrigin
+				   << "to" << it.value().topLeft() << "- shifting" << m_ledWidgets.size() << "zones by" << delta;
+		for (int i = 0; i < m_ledWidgets.size(); i++) {
+			const QPoint pos = Settings::getLedPosition(i) + delta;
+			Settings::setLedPosition(i, pos);
+			m_ledWidgets[i]->move(pos);
+		}
+		Settings::setZoneScreenOrigin(it.value().topLeft());
+		return;
+	}
 }
 
 void GrabManager::evaluateZoneScreenAvailability()

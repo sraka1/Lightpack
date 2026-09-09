@@ -118,6 +118,7 @@ private:
 	void scheduleRestoreLedPositions();
 	void evaluateZoneScreenAvailability();
 	void persistZoneScreenIdentity();
+	void realignZonesToScreen();
 	QList<QPoint> zoneCenters() const;
 	GrabberBase *queryGrabber(Grab::GrabberType grabber);
 	void initGrabbers();

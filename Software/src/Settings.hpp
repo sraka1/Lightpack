@@ -218,6 +218,8 @@ public:
 	// Phase 1: persisted QScreen name|manufacturer|serial for the zones' screen.
 	static QString getZoneScreenIdentity();
 	static void setZoneScreenIdentity(const QString& identity);
+	static bool getZoneScreenOrigin(QPoint& origin);
+	static void setZoneScreenOrigin(const QPoint& origin);
 	static QList<LedGroup> getLedGroups();
 	static void setLedGroups(const QList<LedGroup>& groups);
 	static bool isBacklightEnabled();

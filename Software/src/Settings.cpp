@@ -212,6 +212,7 @@ static const QString ContentAspectPreset = QStringLiteral("Grab/ContentAspectPre
 static const QString LayoutRecipe = QStringLiteral("Grab/LayoutRecipe");
 // Phase 1: stable identity of the screen that owns LED zones (name|manufacturer|serial).
 static const QString ZoneScreenIdentity = QStringLiteral("Grab/ZoneScreenIdentity");
+static const QString ZoneScreenOrigin = QStringLiteral("Grab/ZoneScreenOrigin");
 static const QString LedGroups = QStringLiteral("Grab/LedGroups");
 static const QString LuminosityThreshold = QStringLiteral("Grab/LuminosityThreshold");
 static const QString OverBrighten = QStringLiteral("Grab/OverBrighten");
@@ -1476,6 +1477,32 @@ void Settings::setZoneScreenIdentity(const QString& identity)
 	setValue(Profile::Key::Grab::ZoneScreenIdentity, identity);
 }
 
+// Desktop origin of the zone screen at the time the zone positions were
+// saved. Zone positions are absolute desktop coordinates, so when that screen
+// moves (a laptop closed into clamshell mode, displays rearranged) the zones
+// must be shifted by the same delta; see GrabManager::realignZonesToScreen().
+bool Settings::getZoneScreenOrigin(QPoint& origin)
+{
+	// Stored as a QPoint variant (@Point(x y) in the ini, like the LED
+	// positions): a "x,y" string would be read back by QSettings as a list.
+	const QVariant raw = value(Profile::Key::Grab::ZoneScreenOrigin);
+	// Unset = the empty-string default; a real value is a QPoint (whose
+	// toString() is empty too, so do not test the string form of a point).
+	if (!raw.isValid() || raw.metaType().id() != QMetaType::QPoint)
+		return false;
+	origin = raw.toPoint();
+	return true;
+}
+
+void Settings::setZoneScreenOrigin(const QPoint& origin)
+{
+	QPoint current;
+	if (getZoneScreenOrigin(current) && current == origin)
+		return;
+	DEBUG_LOW_LEVEL << Q_FUNC_INFO << origin;
+	setValue(Profile::Key::Grab::ZoneScreenOrigin, origin);
+}
+
 QJsonObject LedGroup::toJson() const
 {
 	QJsonObject json;
@@ -2713,6 +2740,7 @@ void Settings::initCurrentProfile(bool isResetDefault)
 	setNewOption(Profile::Key::Grab::LayoutRecipe,					Profile::Grab::LayoutRecipeDefault, isResetDefault);
 	// Phase 1
 	setNewOption(Profile::Key::Grab::ZoneScreenIdentity,			Profile::Grab::ZoneScreenIdentityDefault, isResetDefault);
+	setNewOption(Profile::Key::Grab::ZoneScreenOrigin,				Profile::Grab::ZoneScreenOriginDefault, isResetDefault);
 	setNewOption(Profile::Key::Grab::LuminosityThreshold,			Profile::Grab::LuminosityThresholdDefault, isResetDefault);
 	setNewOption(Profile::Key::Grab::IsMinimumLuminosityEnabled,	Profile::Grab::IsMinimumLuminosityEnabledDefault, isResetDefault);
 	setNewOption(Profile::Key::Grab::IsDx1011GrabberEnabled,		Profile::Grab::IsDx1011GrabberEnabledDefault, isResetDefault);
