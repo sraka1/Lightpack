@@ -901,7 +901,11 @@ void ApiServer::clientProcessCommands()
 		{
 			API_DEBUG_OUT << CmdSetBrightness;
 
-			if (m_lockedClient == 1)
+			// Brightness is a device setting, not a colour stream: accept it from
+			// the lock holder or, when nobody holds the lock, from any client.
+			// Taking the lock just for this stops and restarts the grabber, which
+			// shows as a flicker on the strip.
+			if (m_lockedClient >= 0)
 			{
 				cmdBuffer.remove(0, cmdBuffer.indexOf(':') + 1);
 				API_DEBUG_OUT << QString(cmdBuffer);
@@ -931,10 +935,6 @@ void ApiServer::clientProcessCommands()
 						result = CmdSetResult_Error;
 					}
 				}
-			}
-			else if (m_lockedClient == 0)
-			{
-				result = CmdSetResult_NotLocked;
 			}
 			else // m_lockedClient != client
 			{

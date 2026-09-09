@@ -380,8 +380,9 @@ bool LightpackPluginInterface::SetGamma(const QString& sessionKey, double gamma)
 
 bool LightpackPluginInterface::SetBrightness(const QString& sessionKey, int brightness)
 {
-	if (lockSessionKeys.isEmpty()) return false;
-	if (lockSessionKeys[0]!=sessionKey) return false;
+	// Allowed without a lock (see ApiServer): only refuse a session other
+	// than the one currently holding the lock.
+	if (!lockSessionKeys.isEmpty() && lockSessionKeys[0]!=sessionKey) return false;
 		if (brightness >= Profile::Device::BrightnessMin && brightness <= Profile::Device::BrightnessMax)
 		{
 			emit updateBrightness(brightness);
