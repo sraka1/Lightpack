@@ -226,8 +226,10 @@ unix:!macx{
 }
 
 macx{
-    XCODE_PATH = $$system(xcode-select -print-path)
-    QMAKE_LFLAGS += -F/System/Library/Frameworks -F"$${XCODE_PATH}/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/PrivateFrameworks"
+    # Resolve the SDK through xcrun so the private-framework stubs (CoreBrightness)
+    # are found with either full Xcode or just the Command Line Tools installed.
+    MAC_SDK_PATH = $$system(xcrun --sdk macosx --show-sdk-path)
+    QMAKE_LFLAGS += -F/System/Library/Frameworks -F"$${MAC_SDK_PATH}/System/Library/PrivateFrameworks"
     # MacOS version using libusb and hidapi codes
     SOURCES += hidapi/mac/hid.c \
     MacOSSession.mm

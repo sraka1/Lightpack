@@ -142,8 +142,11 @@ macx {
     #        -framework CoreFoundation
     #QMAKE_MAC_SDK = macosx10.8
 
-    # ignored by clang when building for arm
-    QMAKE_CXXFLAGS += $$QMAKE_CFLAGS_AVX2
+    # Apple clang >= 17 rejects -mavx2 for arm64 slices (older versions silently
+    # ignored it), so scope the flag to the x86 slices of the build.
+    for(arch, QMAKE_APPLE_DEVICE_ARCHS) {
+        contains(arch, x86_64.*): QMAKE_CXXFLAGS += -Xarch_$${arch} $$QMAKE_CFLAGS_AVX2
+    }
 }
 
 unix:!macx {
