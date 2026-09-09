@@ -33,6 +33,9 @@
 
 using namespace SettingsScope;
 
+// Idle gap after which the last frame is re-sent (see m_keepAliveTimer).
+static const int KeepAliveIntervalMs = 250;
+
 LedDeviceAdalight::LedDeviceAdalight(const QString &portName, const int baudRate, QObject *parent) : AbstractLedDevice(parent)
 {
 	DEBUG_LOW_LEVEL << Q_FUNC_INFO;
@@ -44,6 +47,11 @@ LedDeviceAdalight::LedDeviceAdalight(const QString &portName, const int baudRate
 	m_lastWillTimer = new QTimer(this);
 	m_lastWillTimer->setTimerType(Qt::PreciseTimer);
 	connect(m_lastWillTimer, &QTimer::timeout, this, qOverload<>(&LedDeviceAdalight::writeLastWill));
+	m_keepAliveTimer = new QTimer(this);
+	m_keepAliveTimer->setTimerType(Qt::PreciseTimer);
+	m_keepAliveTimer->setSingleShot(true);
+	m_keepAliveTimer->setInterval(KeepAliveIntervalMs);
+	connect(m_keepAliveTimer, &QTimer::timeout, this, &LedDeviceAdalight::writeKeepAlive);
 	// TODO: think about init m_savedColors in all ILedDevices
 
 	DEBUG_LOW_LEVEL << Q_FUNC_INFO << "initialized";
@@ -53,6 +61,7 @@ LedDeviceAdalight::~LedDeviceAdalight()
 {
 	close();
 	delete m_lastWillTimer;
+	delete m_keepAliveTimer;
 }
 
 int LedDeviceAdalight::maxLedsCount()
@@ -65,6 +74,7 @@ void LedDeviceAdalight::close()
 	if (m_AdalightDevice == NULL)
 		return;
 
+	m_keepAliveTimer->stop();
 	if (m_lastWillTimer->isActive()) {
 		m_lastWillTimer->stop();
 		writeLastWill(true);
@@ -206,7 +216,11 @@ void LedDeviceAdalight::open()
 
 	m_AdalightDevice->setPortName(m_portName);// Settings::getAdalightSerialPortName());
 
-	m_AdalightDevice->open(QIODevice::WriteOnly);
+	// ReadWrite, not WriteOnly: with a write-only QSerialPort on macOS the device
+	// thread's poll() loop spins at 100% CPU (reproduced with a minimal Qt program;
+	// ReadWrite idles at 0%). Incoming bytes (Adalight sketches greet with "Ada\n")
+	// are drained so they never accumulate.
+	m_AdalightDevice->open(QIODevice::ReadWrite);
 	bool ok = m_AdalightDevice->isOpen();
 
 	// Ubuntu 10.04: on every second attempt to open the device leads to failure
@@ -214,13 +228,14 @@ void LedDeviceAdalight::open()
 	{
 		qWarning() << Q_FUNC_INFO << "Serial device" << m_AdalightDevice->portName() << "open fail, will retry. Error" << (int)m_AdalightDevice->error() << m_AdalightDevice->errorString();
 		// Try one more time
-		m_AdalightDevice->open(QIODevice::WriteOnly);
+		m_AdalightDevice->open(QIODevice::ReadWrite);
 		ok = m_AdalightDevice->isOpen();
 	}
 
 	if (ok)
 	{
 		DEBUG_LOW_LEVEL << Q_FUNC_INFO << "Serial device" << m_AdalightDevice->portName() << "open";
+		connect(m_AdalightDevice, &QSerialPort::readyRead, m_AdalightDevice, [this]() { m_AdalightDevice->readAll(); });
 		ok = m_AdalightDevice->setBaudRate(m_baudRate);//Settings::getAdalightSerialPortBaudRate());
 		if (ok)
 		{
@@ -290,8 +305,22 @@ bool LedDeviceAdalight::writeBuffer(const QByteArray & buff)
 		return false;
 	}
 
+	m_keepAliveTimer->start();
 	emit ioDeviceSuccess(true);
 	return true;
+}
+
+void LedDeviceAdalight::writeKeepAlive()
+{
+	if (m_AdalightDevice == NULL || m_AdalightDevice->isOpen() == false || m_writeBuffer.isEmpty())
+		return;
+	if (m_AdalightDevice->bytesToWrite() > 0) {
+		m_keepAliveTimer->start();
+		return;
+	}
+	DEBUG_HIGH_LEVEL << Q_FUNC_INFO << "re-sending last frame";
+	// Not a command from LedDeviceManager, so no commandCompleted() here.
+	writeBuffer(m_writeBuffer);
 }
 
 void LedDeviceAdalight::resizeColorsBuffer(int buffSize)

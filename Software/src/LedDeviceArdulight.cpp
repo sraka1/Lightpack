@@ -213,7 +213,11 @@ void LedDeviceArdulight::open()
 
 	m_ArdulightDevice->setPortName(m_portName);
 
-	m_ArdulightDevice->open(QIODevice::WriteOnly);
+	// ReadWrite, not WriteOnly: with a write-only QSerialPort on macOS the device
+	// thread's poll() loop spins at 100% CPU (reproduced with a minimal Qt program;
+	// ReadWrite idles at 0%). Incoming bytes (Adalight sketches greet with "Ada\n")
+	// are drained so they never accumulate.
+	m_ArdulightDevice->open(QIODevice::ReadWrite);
 	bool ok = m_ArdulightDevice->isOpen();
 
 	// Ubuntu 10.04: on every second attempt to open the device leads to failure
@@ -221,13 +225,14 @@ void LedDeviceArdulight::open()
 	{
 		qWarning() << Q_FUNC_INFO << "Serial device" << m_ArdulightDevice->portName() << "open fail, will retry. Error" << (int)m_ArdulightDevice->error() << m_ArdulightDevice->errorString();
 		// Try one more time
-		m_ArdulightDevice->open(QIODevice::WriteOnly);
+		m_ArdulightDevice->open(QIODevice::ReadWrite);
 		ok = m_ArdulightDevice->isOpen();
 	}
 
 	if (ok)
 	{
 		DEBUG_LOW_LEVEL << Q_FUNC_INFO << "Serial device" << m_ArdulightDevice->portName() << "open";
+		connect(m_ArdulightDevice, &QSerialPort::readyRead, m_ArdulightDevice, [this]() { m_ArdulightDevice->readAll(); });
 
 		ok = m_ArdulightDevice->setBaudRate(m_baudRate);
 		if (ok)

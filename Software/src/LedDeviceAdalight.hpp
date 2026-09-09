@@ -53,6 +53,7 @@ public slots:
 	void updateDeviceSettings();
 	void writeLastWill();
 	void writeLastWill(const bool force);
+	void writeKeepAlive();
 
 private:
 	bool writeBuffer(const QByteArray & buff);
@@ -67,4 +68,7 @@ private:
 	QString m_portName;
 	int m_baudRate;
 	QTimer* m_lastWillTimer{nullptr};
+	// Re-sends the last frame while the host is idle so sketches with a serial
+	// timeout (they blank the strip when frames stop) keep showing the last colors.
+	QTimer* m_keepAliveTimer{nullptr};
 };
