@@ -18,7 +18,7 @@
 
 namespace {
 	// see notes below about pixel format and scaling
-	static const double kScaleFactor = 0.2;
+	static const double kScaleFactor = 0.25;
 }
 
 @interface MacOSNativeAVCapture : NSDocument <AVCaptureVideoDataOutputSampleBufferDelegate>
@@ -83,7 +83,10 @@ namespace {
 
 	/* Add the display as a capture input. */
 	AVCaptureScreenInput* captureScreenInput = [[AVCaptureScreenInput alloc] initWithDisplayID:_display];
-	captureScreenInput.scaleFactor = kScaleFactor / MacOSAVGrabber::getDisplayScalingRatio(_display);
+	// Do NOT use scaleFactor: on macOS 15+/26 a scaleFactor below ~0.5 makes the
+	// input deliver exactly one frame and then go silent (verified with a
+	// standalone AVCaptureSession). The downscale is requested through the
+	// output's videoSettings width/height instead, which streams steadily.
 	captureScreenInput.minFrameDuration = CMTimeMake(1, 1); // default to 1 FPS
 	if ([_captureSession canAddInput:captureScreenInput])
 		[_captureSession addInput:captureScreenInput];
@@ -130,7 +133,10 @@ namespace {
 	 April 2020 update: issue still present on 10.14 (see #326), setting scaleFactor to 0.2 for the time being
 
 	 */
-	captureDataOutput.videoSettings = @{ (id)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA) };
+	const CGRect displayBounds = CGDisplayBounds(_display);
+	captureDataOutput.videoSettings = @{ (id)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA),
+										 (id)kCVPixelBufferWidthKey : @((int)(displayBounds.size.width * kScaleFactor)),
+										 (id)kCVPixelBufferHeightKey : @((int)(displayBounds.size.height * kScaleFactor)) };
 
 	if ([_captureSession canAddOutput:captureDataOutput])
 		[_captureSession addOutput:captureDataOutput];
@@ -338,13 +344,16 @@ namespace {
 		CVPixelBufferRef displayImageRef{nullptr};
 	};
 
-	void toGrabbedScreen(CVPixelBufferRef imageRef, GrabbedScreen& screen)
+	void toGrabbedScreen(CVPixelBufferRef imageRef, GrabbedScreen& screen, const CGDirectDisplayID display)
 	{
 		if (!screen.associatedData)
 			screen.associatedData = new MacOSAVScreenData;
 		((MacOSAVScreenData*)screen.associatedData)->setImageRef(imageRef);
 		screen.bytesPerRow = CVPixelBufferGetBytesPerRow(imageRef);
-		screen.scale = kScaleFactor;
+		// GrabberBase scales logical zone rects by this, so derive it from the
+		// buffer actually delivered rather than assuming the requested size.
+		const double logicalWidth = CGDisplayBounds(display).size.width;
+		screen.scale = logicalWidth > 0 ? (double)CVPixelBufferGetWidth(imageRef) / logicalWidth : kScaleFactor;
 		screen.imgData = (unsigned char*)CVPixelBufferGetBaseAddress(imageRef);
 		screen.imgDataSize = CVPixelBufferGetHeight(imageRef) * screen.bytesPerRow;
 	}
@@ -446,7 +455,7 @@ GrabResult MacOSAVGrabber::grabDisplay(const CGDirectDisplayID display, GrabbedS
 		return GrabResultFrameNotReady;
 	}
 
-	toGrabbedScreen(imageRef, screen);
+	toGrabbedScreen(imageRef, screen, display);
 	CVPixelBufferRelease(imageRef);
 
 	return GrabResultOk;
