@@ -80,6 +80,7 @@ void LedDeviceAdalight::close()
 		m_lastWillTimer->stop();
 		writeLastWill(true);
 	}
+	m_lastWillTimer->stop();   // writeLastWill(true) above may have re-armed it via a paced skip
 	m_AdalightDevice->close();
 
 	delete m_AdalightDevice;
@@ -334,6 +335,10 @@ void LedDeviceAdalight::writeLastWill()
 
 void LedDeviceAdalight::writeLastWill(const bool force)
 {
+	// The timer can fire after close() deleted the port (device recreate,
+	// session change): four SIGSEGVs in writeLastWill(bool)+28 on 2026-09-09.
+	if (m_AdalightDevice == NULL || !m_AdalightDevice->isOpen())
+		return;
 	if (force || m_AdalightDevice->bytesToWrite() == 0) {
 		DEBUG_MID_LEVEL << Q_FUNC_INFO << "Writing last will frame" << (m_isOff ? "(off)" : "");
 		if (m_isOff)
